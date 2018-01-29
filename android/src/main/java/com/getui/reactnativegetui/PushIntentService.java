@@ -5,6 +5,8 @@ package com.getui.reactnativegetui;
  */
 
 import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
@@ -47,6 +49,9 @@ public class PushIntentService extends GTIntentService {
         WritableMap param = Arguments.createMap();
         param.putString("type", GetuiModule.EVENT_TYPE_PAYLOAD);
         param.putString("payload", message);
+        try {
+            GetuiModule.sendOtcNotification(context,message);
+        }catch (Exception e){ }
         GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION, param );
     }
 

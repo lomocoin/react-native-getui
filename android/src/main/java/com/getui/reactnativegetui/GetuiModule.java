@@ -1,8 +1,18 @@
 package com.getui.reactnativegetui;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -14,6 +24,11 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.igexin.sdk.PushManager;
 import com.igexin.sdk.Tag;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Map;
 
 
 /**
@@ -324,5 +339,54 @@ public class GetuiModule extends ReactContextBaseJavaModule {
     public static void sendEvent(String eventName, @Nullable WritableMap params){
         mRAC.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit(eventName, params);
+    }
+
+    // 发送otc消息到通知栏
+    public static void sendOtcNotification(Context context,String json) {
+        String title,content,action,data;
+        try {
+            JSONObject jsonObject =  new JSONObject(json);
+            title = jsonObject.getString("title");
+            content = jsonObject.getString("content");
+            action = jsonObject.getString("action");
+            data = jsonObject.getString("data");
+        } catch (JSONException e) {
+            return;
+        }
+
+        SharedPreferences mSharedPreferences = PreferenceManager
+                .getDefaultSharedPreferences(context);
+        Boolean state = mSharedPreferences.getBoolean("otc_push_state",true);
+        if(!state){
+            return;
+        }
+
+        Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        intent.putExtra("action",action);
+        intent.putExtra("orderId",data);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        BitmapDrawable bitmapDrawable = (BitmapDrawable)context.getApplicationInfo().loadIcon(context.getPackageManager());
+        Bitmap appIcon = bitmapDrawable.getBitmap();
+        int smallIcon = context.getApplicationInfo().icon;
+        Uri defaultSoundUri= RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context)
+                .setSmallIcon(smallIcon)
+                .setLargeIcon(appIcon)
+                .setContentTitle(title)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(content))
+                .setContentText(content)
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setContentIntent(pendingIntent);
+
+        NotificationManager notificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        notificationManager.notify(0, notificationBuilder.build());
     }
 }
