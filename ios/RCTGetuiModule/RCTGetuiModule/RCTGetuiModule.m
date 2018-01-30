@@ -8,45 +8,28 @@
 
 #import "RCTGetuiModule.h"
 
-#if __has_include(<React/RCTBridge.h>)
-#import <React/RCTEventDispatcher.h>
-#import <React/RCTRootView.h>
-#import <React/RCTBridge.h>
-#import <React/RCTLog.h>
-
-#elif __has_include("RCTBridge.h")
-#import "RCTEventDispatcher.h"
-#import "RCTRootView.h"
-#import "RCTBridge.h"
-#import "RCTLog.h"
-#elif __has_include("React/RCTBridge.h")
-#import "React/RCTEventDispatcher.h"
-#import "React/RCTRootView.h"
-#import "React/RCTBridge.h"
-#import "React/RCTLog.h"
-#endif
-
-
-@interface RCTGetuiModule () {
-    RCTResponseSenderBlock receiveRemoteNotificationCallback;
-    RCTResponseSenderBlock clickNotificationCallback;
-
-}
+@interface RCTGetuiModule ()
 
 @end
 @implementation RCTGetuiModule
 
-RCT_EXPORT_MODULE();
 @synthesize bridge = _bridge;
+
+RCT_EXPORT_MODULE();
+
+- (NSArray<NSString *> *)supportedEvents
+{
+    return @[@"receiveRemoteNotification",@"registeClientId",@"clickRemoteNotification"];
+}
 
 - (instancetype)init
 {
     self = [super init];
     if (self) {
         NSNotificationCenter *defaultCenter = [NSNotificationCenter defaultCenter];
-
+        
         [defaultCenter removeObserver:self];
-
+        
         [defaultCenter addObserver:self
                           selector:@selector(noti_receiveRemoteNotification:)
                               name:GT_DID_RECEIVE_REMOTE_NOTIFICATION
@@ -63,44 +46,24 @@ RCT_EXPORT_MODULE();
     return self;
 }
 
+#pragma mark - 收到通知 往js发送事件
 - (void)noti_receiveRemoteNotification:(NSNotification *)notification {
     id obj = [notification object];
-//    if(receiveRemoteNotificationCallback)
-//        receiveRemoteNotificationCallback(@[obj]);
-    [self.bridge.eventDispatcher sendAppEventWithName:@"receiveRemoteNotification"
-                                                 body:obj];
+    [self sendEventWithName:@"receiveRemoteNotification" body:obj];
 }
 
 -(void)noti_registeClientId:(NSNotification *)notification {
-  id obj = [notification object];
-  [self.bridge.eventDispatcher sendAppEventWithName:@"registeClientId"
-                                               body:obj];
+    id obj = [notification object];
+    [self sendEventWithName:@"registeClientId" body:obj];
 }
 
 // iOS 10 后才有点击事件的回调
 - (void)noti_clickRemoteNotification:(NSNotification *)notification {
     id obj = [notification object];
-//    if (clickNotificationCallback) {
-//        clickNotificationCallback(@[obj]);
-//    }
-    [self.bridge.eventDispatcher sendAppEventWithName:@"clickRemoteNotification"
-                                                 body:obj];
+    [self sendEventWithName:@"clickRemoteNotification" body:obj];
 }
 
-#pragma mark - 收到通知回调
-
-//RCT_EXPORT_METHOD(receiveRemoteNotification:(RCTResponseSenderBlock)callback)
-//{
-//    receiveRemoteNotificationCallback = callback;
-//}
-///*
-// *点击回调传回的消息格式只为 APNs
-// */
-//RCT_EXPORT_METHOD(clickRemoteNotification:(RCTResponseSenderBlock)callback)
-//{
-//    clickNotificationCallback = callback;
-//}
-
+#pragma mark SDK 方法
 /**
  *  销毁SDK，并且释放资源
  */
@@ -293,3 +256,4 @@ RCT_EXPORT_METHOD(sendFeedbackMessage:(NSInteger)actionId andTaskId:(NSString *)
 }
 
 @end
+
