@@ -48,7 +48,7 @@ public class PushIntentService extends GTIntentService {
         GetuiLogger.log("onReceiveMessageData msg = " + message);
         WritableMap param = Arguments.createMap();
         param.putString("type", GetuiModule.EVENT_TYPE_PAYLOAD);
-        param.putString("payload", message);
+        param.putString("msg", message);
         try {
             GetuiModule.sendOtcNotification(context,message);
         }catch (Exception e){ }
