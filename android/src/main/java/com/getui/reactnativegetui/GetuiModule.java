@@ -363,7 +363,7 @@ public class GetuiModule extends ReactContextBaseJavaModule {
 
         Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         intent.putExtra("action",action);
-        intent.putExtra("orderId",data);
+        intent.putExtra("data",data);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
