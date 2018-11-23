@@ -49,7 +49,7 @@ public class NotificationUtils {
         //当sdk版本大于26
         if (Build.VERSION.SDK_INT >= 26) {
             String id = "channel_eunex";
-            String description = "661";
+            String description = "eunex";
             int importance = NotificationManager.IMPORTANCE_LOW;
             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
