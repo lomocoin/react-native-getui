@@ -19,7 +19,7 @@ import java.util.Iterator;
 
 
 public class NotificationUtils {
-    // 发送消息到通知栏
+    // 发送消息到通知栏 ingithub
     public static void sendNotification(Context context, String json) throws Exception {
         Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
 
