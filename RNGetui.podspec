@@ -14,6 +14,7 @@ Pod::Spec.new do |spec|
 
   spec.source       = { :git => "https://github.com/lomocoin/react-native-getui.git" }
   spec.source_files = "ios/**/**/*.{h,m}"
+  spec.frameworks = 'UIKit', 'Foundation', 'PushKit', 'CoreFoundation', 'AdSupport', 'CoreLocation', 'UserNotifications', 'JavaScriptCore', 'AVFoundation', 'CoreTelephony', 'SystemConfiguration', 'MobileCoreServices', 'Security', 'libsqlite3', 'libc++', 'libz'
 
   spec.dependency   "React"
 end
