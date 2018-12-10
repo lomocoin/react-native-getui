@@ -1,14 +1,14 @@
-buildscript {
-    repositories {
-        google()
-        jcenter()
+// buildscript {
+//     repositories {
+//         google()
+//         jcenter()
 
-    }
+//     }
 
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
-    }
-}
+//     dependencies {
+//         classpath 'com.android.tools.build:gradle:2.2.3'
+//     }
+// }
 
 apply plugin: 'com.android.library'
 
@@ -37,10 +37,10 @@ android {
 
 }
 
-repositories {
-    mavenCentral()
-    google()
-}
+// repositories {
+//     mavenCentral()
+//     google()
+// }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
