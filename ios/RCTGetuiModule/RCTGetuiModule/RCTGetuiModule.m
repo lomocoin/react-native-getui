@@ -8,18 +8,45 @@
 
 #import "RCTGetuiModule.h"
 
-@interface RCTGetuiModule ()
+#if __has_include(<React/RCTBridge.h>)
+#import <React/RCTEventDispatcher.h>
+#import <React/RCTRootView.h>
+#import <React/RCTBridge.h>
+#import <React/RCTLog.h>
+
+#elif __has_include("RCTBridge.h")
+#import "RCTEventDispatcher.h"
+#import "RCTRootView.h"
+#import "RCTBridge.h"
+#import "RCTLog.h"
+#elif __has_include("React/RCTBridge.h")
+#import "React/RCTEventDispatcher.h"
+#import "React/RCTRootView.h"
+#import "React/RCTBridge.h"
+#import "React/RCTLog.h"
+#endif
+
+#import <PushKit/PushKit.h>
+
+@interface RCTGetuiModule ()<PKPushRegistryDelegate,GeTuiSdkDelegate> {
+    RCTResponseSenderBlock receiveRemoteNotificationCallback;
+    RCTResponseSenderBlock clickNotificationCallback;
+    
+}
 
 @end
 @implementation RCTGetuiModule
 
+RCT_EXPORT_MODULE();
 @synthesize bridge = _bridge;
 
-RCT_EXPORT_MODULE();
-
-- (NSArray<NSString *> *)supportedEvents
-{
-    return @[@"receiveRemoteNotification",@"registeClientId",@"clickRemoteNotification"];
++ (id)allocWithZone:(NSZone *)zone {
+    static RCTGetuiModule  *sharedInstance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sharedInstance = [super allocWithZone:zone];
+    });
+    return sharedInstance;
 }
 
 - (instancetype)init
@@ -35,35 +62,93 @@ RCT_EXPORT_MODULE();
                               name:GT_DID_RECEIVE_REMOTE_NOTIFICATION
                             object:nil];
         [defaultCenter addObserver:self
-                          selector:@selector(noti_clickRemoteNotification:)
+                          selector:@selector(noti_openRemoteNotification:)
                               name:GT_DID_CLICK_NOTIFICATION
                             object:nil];
         [defaultCenter addObserver:self
                           selector:@selector(noti_registeClientId:)
                               name:GT_DID_REGISTE_CLIENTID
                             object:nil];
+        [defaultCenter addObserver:self
+                          selector:@selector(jsDidLoad)
+                              name:RCTJavaScriptDidLoadNotification
+                            object:nil];
     }
     return self;
 }
 
-#pragma mark - 收到通知 往js发送事件
+- (void)setBridge:(RCTBridge *)bridge {
+    _bridge = bridge;
+    
+    // 实现APP在关闭状态通过点击推送打开时的推送处理
+    [RCTGetuiPushBridgeQueue sharedInstance].openedRemoteNotification = [_bridge.launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+    [RCTGetuiPushBridgeQueue sharedInstance].openedLocalNotification = [_bridge.launchOptions objectForKey:UIApplicationLaunchOptionsLocalNotificationKey];
+}
+
+- (void)jsDidLoad {
+    [RCTGetuiPushBridgeQueue sharedInstance].jsDidLoad = YES;
+    
+    if ([RCTGetuiPushBridgeQueue sharedInstance].openedRemoteNotification != nil) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:GT_DID_CLICK_NOTIFICATION object:[RCTGetuiPushBridgeQueue sharedInstance].openedRemoteNotification];
+        //        [RNAlipushBridgeQueue sharedInstance].openedRemoteNotification = nil;
+    }
+    
+    if ([RCTGetuiPushBridgeQueue sharedInstance].openedLocalNotification != nil) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:GT_DID_CLICK_NOTIFICATION object:[RCTGetuiPushBridgeQueue sharedInstance].openedLocalNotification];
+        //        [RNAlipushBridgeQueue sharedInstance].openedLocalNotification = nil;
+    }
+    
+    [[RCTGetuiPushBridgeQueue sharedInstance] scheduleBridgeQueue];
+}
+
+- (dispatch_queue_t)methodQueue
+{
+    return dispatch_get_main_queue();
+}
+
 - (void)noti_receiveRemoteNotification:(NSNotification *)notification {
     id obj = [notification object];
-    [self sendEventWithName:@"receiveRemoteNotification" body:obj];
+    if ([RCTGetuiPushBridgeQueue sharedInstance].jsDidLoad == YES) {
+        [self.bridge.eventDispatcher sendAppEventWithName:@"receiveRemoteNotification"
+                                                     body:obj];
+    }else{
+        [[RCTGetuiPushBridgeQueue sharedInstance] postNotification:notification status:@"receive"];
+    }
+    
 }
 
 -(void)noti_registeClientId:(NSNotification *)notification {
-    id obj = [notification object];
-    [self sendEventWithName:@"registeClientId" body:obj];
+    id obj = [notification object];    
+    [self.bridge.eventDispatcher sendAppEventWithName:@"registeClientId"
+                                                 body:obj];
 }
 
-// iOS 10 后才有点击事件的回调
-- (void)noti_clickRemoteNotification:(NSNotification *)notification {
+
+- (void)noti_openRemoteNotification:(NSNotification *)notification {
     id obj = [notification object];
-    [self sendEventWithName:@"clickRemoteNotification" body:obj];
+    // 如果js部分未加载完，则先存档
+    if ([RCTGetuiPushBridgeQueue sharedInstance].jsDidLoad == YES) {
+        [self.bridge.eventDispatcher sendAppEventWithName:@"clickRemoteNotification"
+                                                     body:obj];
+    } else {
+        [[RCTGetuiPushBridgeQueue sharedInstance] postNotification:notification status:@"open"];
+    }
 }
 
-#pragma mark SDK 方法
+#pragma mark - 收到通知回调
+
+//RCT_EXPORT_METHOD(receiveRemoteNotification:(RCTResponseSenderBlock)callback)
+//{
+//    receiveRemoteNotificationCallback = callback;
+//}
+///*
+// *点击回调传回的消息格式只为 APNs
+// */
+//RCT_EXPORT_METHOD(clickRemoteNotification:(RCTResponseSenderBlock)callback)
+//{
+//    clickNotificationCallback = callback;
+//}
+
 /**
  *  销毁SDK，并且释放资源
  */
@@ -253,6 +338,46 @@ RCT_EXPORT_METHOD(sendFeedbackMessage:(NSInteger)actionId andTaskId:(NSString *)
 {
     BOOL isSuccess = [GeTuiSdk sendFeedbackMessage:actionId andTaskId:taskId andMsgId:msgId];
     callback(@[isSuccess?@"true":@"false"]);
+}
+
+#pragma mark - VOIP related
+
+// 实现 PKPushRegistryDelegate 协议方法
+
+/** 系统返回VOIPToken，并提交个推服务器 */
+
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(NSString *)type {
+    NSString *voiptoken = [credentials.token.description stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+    voiptoken = [voiptoken stringByReplacingOccurrencesOfString:@" " withString:@""];
+    NSLog(@"\n>>>[VoIP Token]:%@\n\n",voiptoken);
+    //向个推服务器注册 VoipToken
+    [GeTuiSdk registerVoipToken:voiptoken];
+}
+
+/** 接收VOIP推送中的payload进行业务逻辑处理（一般在这里调起本地通知实现连续响铃、接收视频呼叫请求等操作），并执行个推VOIP回执统计 */
+- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
+    //个推VOIP回执统计
+    [GeTuiSdk handleVoipNotification:payload.dictionaryPayload];
+    
+    //TODO:接受 VoIP 推送中的 payload 内容进行具体业务逻辑处理
+    NSLog(@"[VoIP Payload]:%@,%@", payload, payload.dictionaryPayload);
+    
+    NSDictionary *ret = [NSDictionary dictionaryWithObjectsAndKeys:
+                         [NSNumber numberWithInteger:1], @"result",
+                         @"voipPayload", @"type",
+                         payload.dictionaryPayload[@"payload"], @"payload",
+                         payload.dictionaryPayload[@"_gmid_"], @"gmid",  nil];
+    [self.bridge.eventDispatcher sendAppEventWithName:@"voipPushPayload"
+                                                 body:ret];
+}
+
+RCT_EXPORT_METHOD(voipRegistration)
+{
+    dispatch_queue_t mainQueue = dispatch_get_main_queue();
+    PKPushRegistry *voipRegistry = [[PKPushRegistry alloc] initWithQueue:mainQueue];
+    voipRegistry.delegate = self;
+    // Set the push type to VoIP
+    voipRegistry.desiredPushTypes = [NSSet setWithObject:PKPushTypeVoIP];
 }
 
 @end

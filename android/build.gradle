@@ -1,18 +1,19 @@
-buildscript {
-    repositories {
-        jcenter()
+// buildscript {
+//     repositories {
+//         google()
+//         jcenter()
 
-    }
+//     }
 
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
-    }
-}
+//     dependencies {
+//         classpath 'com.android.tools.build:gradle:2.2.3'
+//     }
+// }
 
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion 26
     buildToolsVersion "25.0.2"
 
     defaultConfig {
@@ -36,12 +37,13 @@ android {
 
 }
 
-repositories {
-    mavenCentral()
-}
+// repositories {
+//     mavenCentral()
+//     google()
+// }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:support-v4:25+'
     compile 'com.facebook.react:react-native:+'
 }

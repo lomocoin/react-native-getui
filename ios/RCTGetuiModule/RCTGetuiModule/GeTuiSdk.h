@@ -5,7 +5,7 @@
 //  Created by gexin on 15-5-5.
 //  Copyright (c) 2015年 Gexin Interactive (Beijing) Network Technology Co.,LTD. All rights reserved.
 //
-//  GTSDK-Version:2.1.0.0
+//  GTSDK-Version:2.3.0.0
 
 #import <Foundation/Foundation.h>
 
@@ -55,7 +55,7 @@ typedef enum {
 /**
  *  获取SDK版本号
  *
- *  当前GeTuiSdk版本：2.1.0.0
+ *  当前GeTuiSdk版本：2.3.0.0
  *  @return 版本值
  */
 + (NSString *)version;
@@ -116,6 +116,15 @@ typedef enum {
  */
 + (BOOL)registerDeviceToken:(NSString *)deviceToken;
 
+/**
+ *  向个推服务器注册VoipToken
+ *  备注：可以未启动SDK就调用该方法
+ *
+ *  @param voipToken 推送时使用的voipToken
+ *  @return voipToken有效判断，YES.有效 NO.无效
+ *
+ */
++ (BOOL)registerVoipToken:(NSString *)voipToken;
 
 /**
  *  绑定别名功能:后台可以根据别名进行推送
@@ -180,6 +189,14 @@ typedef enum {
  */
 + (void)handleRemoteNotification:(NSDictionary *)userInfo;
 
+
+/**
+ *  VOIP消息回执
+ *
+ *  @param payload VOIP 推送内容
+ */
++ (void)handleVoipNotification:(NSDictionary *)payload;
+
 /**
  *  SDK发送上行消息结果
  *
@@ -206,6 +223,13 @@ typedef enum {
  *  清空下拉通知栏全部通知,并将角标置“0”，不显示角标
  */
 + (void)clearAllNotificationForNotificationBar;
+
+/**
+ *  APPLink 回执
+ *  @param webUrl applink Url
+ *  @return applink 中用户的 payload 信息
+ */
++ (NSString*) handleApplinkFeedback:(NSURL* ) webUrl;
 
 @end
 

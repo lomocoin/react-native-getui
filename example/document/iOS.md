@@ -1,4 +1,5 @@
-#iOS usage
+# iOS 手动集成方式
+
 在 react-native link 之后，打开 iOS 工程。
 Xcode 工程中需要注册个推 SDK 、注册 deviceToken 、监听消息回调，才能正常使用推送服务，只需要通过以下几步即可集成：
 
@@ -198,7 +199,7 @@ didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
 
 ````
 
-#JS 使用
+#JS 使用及接口
 
 主要的消息通知回调使用如下，其他的接口均可在 [index.js](https://github.com/GetuiLaboratory/react-native-getui/blob/master/index.js) 查看。
 
@@ -233,7 +234,22 @@ didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
             Alert.alert('点击通知',JSON.stringify(notification))
         }
     );
+
+    <!-- VoIP 推送通知回调 -->
+
+    var voipPushPayloadSub = 
+        NativeAppEventEmitter.addListener(
+            'voipPushPayload',
+            (notification) => {
+                Alert.alert('VoIP 通知： ',JSON.stringify(notification))
+            }
+        );
 ````
+**注意** 
+
+为保证正确收到 VoIP 推送回调，需要先调用注册 VoIP 接口 `Getui.voipRegistration()`，并且需要打开推送统治权限，并且开启 VoIP 后台运行权限。
+
+![VoIP 权限配置](https://github.com/GetuiLaboratory/react-native-getui/blob/master/example/document/img/ios_1.jpeg?raw=true)
 
 ````
 componentWillUnMount() {
@@ -241,6 +257,7 @@ componentWillUnMount() {
     receiveRemoteNotificationSub.remove()
     clickRemoteNotificationSub.remove()
     resigsteClientIdSub.remove()
+    voipPushPayloadSub.remove()
 }
 ````
 
@@ -249,6 +266,9 @@ componentWillUnMount() {
 ````
 import Getui from 'react-native-getui'
 
+  // 注册 VoIP 通知，只有注册后才能收到 VoIP 通知。
+  Getui.voipRegistration();
+  
   Getui.clientId((param)=> {
        this.setState({'clientId': param})
    })

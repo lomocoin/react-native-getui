@@ -5,13 +5,13 @@ package com.getui.reactnativegetui;
  */
 
 import android.content.Context;
-import android.content.Intent;
-import android.util.Log;
+import androidx.annotation.RequiresPermission;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.igexin.sdk.GTIntentService;
 import com.igexin.sdk.message.GTCmdMessage;
+import com.igexin.sdk.message.GTNotificationMessage;
 import com.igexin.sdk.message.GTTransmitMessage;
 
 /**
@@ -28,7 +28,7 @@ public class PushIntentService extends GTIntentService {
 
     @Override
     public void onReceiveServicePid(Context context, int pid) {
-        GetuiLogger.log("onReceiveServicePid = " +  pid);
+        GetuiLogger.log("onReceiveServicePid = " + pid);
 
 
     }
@@ -39,7 +39,7 @@ public class PushIntentService extends GTIntentService {
         WritableMap param = Arguments.createMap();
         param.putString("type", GetuiModule.EVENT_TYPE_RECEIVE_CID);
         param.putString("cid", clientId);
-        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION,  param);
+        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION, param);
     }
 
     @Override
@@ -48,11 +48,14 @@ public class PushIntentService extends GTIntentService {
         GetuiLogger.log("onReceiveMessageData msg = " + message);
         WritableMap param = Arguments.createMap();
         param.putString("type", GetuiModule.EVENT_TYPE_PAYLOAD);
-        param.putString("msg", message);
+        param.putString("payload", message);
+
         try {
-            GetuiModule.sendOtcNotification(context,message);
-        }catch (Exception e){ }
-        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION, param );
+            NotificationUtils.sendNotification(context, message);
+        } catch (Exception e) {
+        }
+
+        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION, param);
     }
 
     @Override
@@ -63,7 +66,50 @@ public class PushIntentService extends GTIntentService {
     @Override
     public void onReceiveCommandResult(Context context, GTCmdMessage cmdMessage) {
         GetuiLogger.log("onReceiveCommandResult cmdMessage action = " + cmdMessage.getAction());
+
         GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION,
                 GetuiModule.EVENT_TYPE_CMD, "action", String.valueOf(cmdMessage.getAction()));
     }
+
+
+    // 通知到达
+    @Override
+    public void onNotificationMessageArrived(Context context, GTNotificationMessage message) {
+        GetuiLogger.log("onNotificationMessageArrived -> " + "appid = " + message.getAppid() + "\ntaskid = " + message.getTaskId() + "\nmessageid = "
+                + message.getMessageId() + "\npkg = " + message.getPkgName() + "\ncid = " + message.getClientId() + "\ntitle = "
+                + message.getTitle() + "\ncontent = " + message.getContent());
+        /*
+        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION,GetuiModule.EVENT_TYPE_CMD,"NotificationArrived",String.valueOf("appid = " + message.getAppid() + "\ntaskid = " + message.getTaskId() + "\nmessageid = "
+                + message.getMessageId() + "\npkg = " + message.getPkgName() + "\ncid = " + message.getClientId() + "\ntitle = "
+                + message.getTitle() + "\ncontent = " + message.getContent()));
+        */
+        WritableMap param = Arguments.createMap();
+        param.putString("type", GetuiModule.EVENT_TYPE_NOTIFICATION_ARRIVED);
+        param.putString("taskId", message.getTaskId());
+        param.putString("messageId", message.getMessageId());
+        param.putString("title", message.getTitle());
+        param.putString("content", message.getContent());
+        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION, param);
+    }
+
+    // 点击回调
+    @Override
+    public void onNotificationMessageClicked(Context context, GTNotificationMessage message) {
+        GetuiLogger.log("onNotificationMessageClicked -> " + "appid = " + message.getAppid() + "\ntaskid = " + message.getTaskId() + "\nmessageid = "
+                + message.getMessageId() + "\npkg = " + message.getPkgName() + "\ncid = " + message.getClientId() + "\ntitle = "
+                + message.getTitle() + "\ncontent = " + message.getContent());
+        /*
+        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION,GetuiModule.EVENT_TYPE_CMD,"NotificatioClicked","appid = " + message.getAppid() + "\ntaskid = " + message.getTaskId() + "\nmessageid = "
+                + message.getMessageId() + "\npkg = " + message.getPkgName() + "\ncid = " + message.getClientId() + "\ntitle = "
+                + message.getTitle() + "\ncontent = " + message.getContent());
+        */
+        WritableMap param = Arguments.createMap();
+        param.putString("type", GetuiModule.EVENT_TYPE_NOTIFICATION_CLICKED);
+        param.putString("taskId", message.getTaskId());
+        param.putString("messageId", message.getMessageId());
+        param.putString("title", message.getTitle());
+        param.putString("content", message.getContent());
+        GetuiModule.sendEvent(GetuiModule.EVENT_RECEIVE_REMOTE_NOTIFICATION, param);
+    }
+
 }
